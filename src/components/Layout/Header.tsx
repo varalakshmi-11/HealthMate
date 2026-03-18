@@ -3,9 +3,17 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { HeartPulseIcon } from 'lucide-react';
-import LanguageSwitcher from '../Common/LanguageSwitcher'; // Corrected path
+import LanguageSwitcher from '../Common/LanguageSwitcher';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  currentLanguage: string;
+  changeLanguage: (language: string) => void;
+}
+
+const Header: React.FC<HeaderProps> = ({
+  currentLanguage,
+  changeLanguage,
+}) => {
   const { t } = useTranslation();
 
   return (
@@ -32,7 +40,10 @@ const Header: React.FC = () => {
           </div>
 
           {/* Language Switcher */}
-          <LanguageSwitcher />
+          <LanguageSwitcher
+            currentLanguage={currentLanguage}
+            changeLanguage={changeLanguage}
+          />
         </nav>
       </div>
     </header>

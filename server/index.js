@@ -43,7 +43,7 @@ app.post('/api/chat', async (req, res) => {
 
     try {
         // Try online OpenAI first
-        if (OPENAI_KEY) {
+        if (OPENAI_KEY && message) {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -72,7 +72,7 @@ Always respond ONLY in the language specified: ${language}.`
         }
 
         // Fallback to offline Ollama
-        if (!reply) {
+        if (!reply || reply.trim() === "") {
             console.log("🤖 Switching to offline mode (Ollama Mistral)...");
             source = "offline";
 
@@ -88,21 +88,21 @@ User: ${message}`,
                 }),
             });
 
-            const reader = ollamaResponse.body.getReader();
-            const decoder = new TextDecoder();
-            let result = '';
+            const ollamaResponse = await fetch("http://localhost:11434/api/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "mistral",
+                    prompt: `You are a healthcare assistant.
+                Only answer health-related questions.
+                Reply ONLY in ${language}.
+                User: ${message}`,
+                    stream: false
+                }),
+            });
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                try {
-                    const json = JSON.parse(chunk);
-                    if (json.response) result += json.response;
-                } catch { }
-            }
-
-            reply = result.trim() || "⚠️ Offline model did not respond properly.";
+            const data = await ollamaResponse.json();
+            reply = data.response || "⚠️ No response from offline model.";
         }
 
         // Optional translation

@@ -3,6 +3,11 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GlobeIcon, ChevronDownIcon } from 'lucide-react';
 
+interface LanguageSwitcherProps {
+  currentLanguage: string;
+  changeLanguage: (language: string) => void;
+}
+
 const languageList = [
   { code: 'hi', labelNative: 'हिन्दी', labelEn: 'Hindi' },
   { code: 'te', labelNative: 'తెలుగు', labelEn: 'Telugu' },
@@ -17,14 +22,23 @@ const languageList = [
   { code: 'en', labelNative: 'English', labelEn: 'English' },
 ];
 
-const LanguageSwitcher: React.FC = () => {
+const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
+  currentLanguage,
+  changeLanguage,
+}) => {
   const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
-  const current = i18n.language || 'en';
 
-  const changeLanguage = (code: string) => {
-    i18n.changeLanguage(code);
-    try { localStorage.setItem('hc_lang', code); } catch (e) { /* ignore */ }
+  const current = currentLanguage || i18n.language || 'en';
+
+  const onChangeLanguage = (code: string) => {
+    i18n.changeLanguage(code);      // i18n update
+    changeLanguage(code);           // App state update
+    try {
+      localStorage.setItem('hc_lang', code);
+    } catch {
+      /* ignore */
+    }
     setOpen(false);
   };
 
@@ -36,10 +50,12 @@ const LanguageSwitcher: React.FC = () => {
         aria-expanded={open}
       >
         <GlobeIcon className="h-4 w-4" />
-        <span>{languageList.find(l => l.code === current)?.labelNative || 'Language'}</span>
-        {/* Down arrow icon with rotation */}
+        <span>
+          {languageList.find(l => l.code === current)?.labelNative || 'Language'}
+        </span>
         <ChevronDownIcon
-          className={`h-4 w-4 ml-1 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 ml-1 transition-transform duration-200 ${open ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
@@ -48,13 +64,15 @@ const LanguageSwitcher: React.FC = () => {
           {languageList.map(l => (
             <button
               key={l.code}
-              onClick={() => changeLanguage(l.code)}
+              onClick={() => onChangeLanguage(l.code)}
               className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${current === l.code ? 'bg-gray-100 font-semibold' : ''
                 }`}
             >
               <div className="flex justify-between">
                 <span>{l.labelNative}</span>
-                <span className="text-xs text-gray-500">({l.labelEn})</span>
+                <span className="text-xs text-gray-500">
+                  ({l.labelEn})
+                </span>
               </div>
             </button>
           ))}
