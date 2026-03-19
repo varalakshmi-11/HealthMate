@@ -39,19 +39,33 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
     }
   }, []);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 1,
-      text: t('chatbot.greeting'),
-      isUser: false,
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const saved = localStorage.getItem('chat_history');
 
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      // Convert timestamp string → Date
+      return parsed.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      }));
+    }
+
+    return [
+      {
+        id: 1,
+        text: t('chatbot.greeting'),
+        isUser: false,
+        timestamp: new Date(),
+      },
+    ];
+  });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isSpeechOn, setIsSpeechOn] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -131,7 +145,7 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
   /* send message */
   const handleSendMessage = async (messageText?: string) => {
     const text = messageText ?? inputValue;
-    if (!text.trim()) return;
+    if (!text.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -151,27 +165,23 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
         responseText = await fetchNearestHospitals();
       } else if (/call ambulance/i.test(text)) {
         responseText = '📞 Dial 108 for ambulance.';
-      } else if (isOnline) {
-        try {
-          const res = await fetch('http://localhost:5000/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              message: text,
-              language: i18n.language
-            })
-          });
-          const data = await res.json();
-          responseText = data.reply;
-        } catch {
-          responseText =
-            getAnswer(text) ||
-            "I'm offline. Try asking about fever, cough, dengue, burns, or tips.";
-        }
-      } else {
+      } try {
+        const res = await fetch('http://localhost:5000/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            language: i18n.language
+          })
+        });
+
+        const data = await res.json();
+        responseText = data.reply;
+
+      } catch {
         responseText =
           getAnswer(text) ||
-          'You are offline. Try asking about fever, cough, dengue, burns, or tips.';
+          "⚠️ Server not reachable. Try again.";
       }
 
       const botMessage: ChatMessage = {
@@ -182,7 +192,9 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
       };
 
       setMessages(prev => [...prev, botMessage]);
-      speak(responseText, i18n.language);
+      if (isSpeechOn) {
+        speak(responseText, i18n.language);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -215,6 +227,9 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
                 Offline
               </span>
             )}
+            <button onClick={() => setIsSpeechOn(prev => !prev)}>
+              {isSpeechOn ? '🔊' : '🔇'}
+            </button>
             <button onClick={() => setIsExpanded(p => !p)}>
               {isExpanded ? '⤡' : '⤢'}
             </button>
@@ -233,6 +248,13 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
               timestamp={m.timestamp}
             />
           ))}
+          {isLoading && (
+            <div className="flex justify-start mb-2">
+              <div className="bg-gray-200 px-4 py-2 rounded-2xl rounded-bl-sm text-sm text-gray-600">
+                🤖 Typing...
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -247,6 +269,7 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
           />
           <button
             onClick={() => handleSendMessage()}
+            disabled={isLoading}
             className="bg-teal-600 text-white px-4"
           >
             <SendIcon />

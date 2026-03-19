@@ -13,11 +13,14 @@ import HealthArticles from '../components/Resources/HealthArticles';
 import HealthQuizzes from '../components/Resources/HealthQuizzes';
 import HealthJournal from '../components/Personal/HealthJournal';
 import { useOutletContext } from 'react-router-dom';
+type HomeContext = {
+  toggleChatbot: () => void;
+};
 interface HomeProps {
   toggleChatbot: () => void;
 }
 const HomePage: React.FC = () => {
-  const { toggleChatbot } = useOutletContext<HomeContext>();
+  const { toggleChatbot } = useOutletContext() as HomeContext;
   const {
     t,
     i18n

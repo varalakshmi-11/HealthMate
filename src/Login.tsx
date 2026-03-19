@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateLogin } from "./loginLogic";
+import { Link } from "react-router-dom";
 export default function Login() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -34,10 +35,10 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                 />
-                <button className="bg-blue-600 text-while px-4 py-2 w-full">Login</button>
+                <button className="bg-blue-600 text-white px-4 py-2 w-full">Login</button>
             </form>
             <p className="mt-4 text-center">
-                <a href="/" className="text-blue-500">Return to homepage</a>
+                <Link to="/" className="text-blue-500">Return to homepage</Link>
             </p>
         </div>
     );

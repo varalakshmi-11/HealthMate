@@ -44,6 +44,8 @@ app.post('/api/chat', async (req, res) => {
     try {
         // Try online OpenAI first
         if (OPENAI_KEY && message) {
+            const controller = new AbortController();
+            //setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -63,39 +65,33 @@ Always respond ONLY in the language specified: ${language}.`
                         { role: "user", content: message }
                     ],
                 }),
+                signal: controller.signal
             });
 
             const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
+            if (data.error) {
+                console.log("OpenAI failed, switching to offline:", data.error.message);
+            } else {
+                reply = data.choices?.[0]?.message?.content || "";
+            }
 
             reply = data.choices?.[0]?.message?.content || "";
         }
 
         // Fallback to offline Ollama
         if (!reply || reply.trim() === "") {
-            console.log("🤖 Switching to offline mode (Ollama Mistral)...");
+            console.log("🤖 Switching to offline mode (ollama mistral) ...");
             source = "offline";
 
-            const ollamaResponse = await fetch("http://localhost:11434/api/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: "mistral",
-                    prompt: `You are an offline multilingual healthcare assistant.
-Only answer health-related questions.
-Reply ONLY in ${language}.
-User: ${message}`,
-                }),
-            });
-
-            const ollamaResponse = await fetch("http://localhost:11434/api/generate", {
+            const ollamaResponse = await fetch("http://127.0.0.1:11434/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     model: "mistral",
                     prompt: `You are a healthcare assistant.
-                Only answer health-related questions.
-                Reply ONLY in ${language}.
+                Answer briefly (2-3 lines only).
+                Only health-related answers.
+                Reply in ${language}.
                 User: ${message}`,
                     stream: false
                 }),
@@ -104,6 +100,7 @@ User: ${message}`,
             const data = await ollamaResponse.json();
             reply = data.response || "⚠️ No response from offline model.";
         }
+
 
         // Optional translation
         reply = await translateText(reply, language);
