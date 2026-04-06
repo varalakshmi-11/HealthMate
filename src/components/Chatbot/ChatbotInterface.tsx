@@ -66,6 +66,7 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [isSpeechOn, setIsSpeechOn] = useState(false);
+  const [mode, setMode] = useState<'online' | 'offline'>('online');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -274,10 +275,21 @@ const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
           >
             <SendIcon />
           </button>
-          <ChatbotMic
-            onSend={handleSendMessage}
-            currentLang={i18n.language}
-          />
+          {isOnline && mode === "online" ? (
+            <ChatbotMic
+              onSend={handleSendMessage}
+              currentLang={i18n.language}
+            />
+          ) : (
+            <button
+              onClick={() =>
+                alert("🎤 Voice input requires internet connection")
+              }
+              className="bg-gray-400 text-white px-4 py-2 rounded-r-lg ml-2 cursor-not-allowed"
+            >
+              🎤
+            </button>
+          )}
         </div>
       </div>
     </div>
